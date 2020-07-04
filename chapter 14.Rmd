@@ -1011,3 +1011,5 @@ stri_rand_strings()
 2. How do you control the language that stri_sort() uses for sorting?
 
 using the locale() argument
+
+something new
