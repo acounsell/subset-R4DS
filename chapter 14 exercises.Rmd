@@ -1,0 +1,656 @@
+---
+title: "R4DS Chapter 14 Exercises "
+author: "Alyssa Counsell"
+date: '2019-06-25'
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(stringr)
+```
+
+
+### 14.2.5 Exercises
+
+1. In code that doesn't use stringr, you'll often see paste() and paste0(). What's the difference between the two functions? 
+
+paste() needs a sep argument. By default is assumes a space is the separater between the strings
+
+paste0() assumes no space for separation so it is a bit more efficient. 
+
+What stringr function are they equivalent to? How do the functions differ in their handling of NA?
+
+they are comparable to the stringr function str_c. 
+
+```{r}
+paste(c("st", "nd", "rd", NA))
+str_c(c("st", "nd", "rd", NA))
+```
+
+paste makes the NA a string (can see quote around it) whereas str_c keeps it as "missing" and does not include it as a string value.
+
+2. In your own words, describe the difference between the sep and collapse arguments to str_c().
+
+```{r}
+str_c(c("st", "nd", "rd"), sep=" ")
+str_c(c("st", "nd", "rd"), collapse="")
+
+```
+
+sep provides the separator in between the strings and preserves the original number of strings whereas collapse makes them into a single string. 
+
+3. Use str_length() and str_sub() to extract the middle character from a string. What will you do if the string has an even number of characters?
+
+```{r, error=TRUE}
+
+names<- c("Udi", "Carmen")
+
+length<-str_length(names)
+mid<-round(length/2)
+
+str_sub(names, mid) # doesn't work -- it goes to the end without an end argument
+
+str_sub(names, mid, mid)
+
+```
+
+4. What does str_wrap() do? When might you want to use it?
+
+str_wrap creates a paragraph style string based on a certain amount of indent. You may want to use it if you have a really large amount of text?
+
+5. What does str_trim() do? What's the opposite of str_trim()?
+
+It removes white space from the start and end of the string. 
+str_pad is the opposite.
+
+6. Write a function that turns (e.g.) a vector c("a", "b", "c") into the string "a, b, and c". Think carefully about what it should do if given a vector of length 0, 1, or 2.
+
+```{r}
+
+vec<-c("a", "b", "c")
+vec2<-NULL
+vec3<- "a"
+vec4<-c("a", "b")
+
+myfun<-function(string){
+    if(string==0L){
+        print("NA")
+    }
+    else if(string==1L){
+      print(string)  
+    }
+    else if (string ==2L){
+        str_c(string[[1]], "and", string[[2]], sep = " ")
+    }
+    else {
+        part1<- str_c(string[seq_len(length(string) - 1)], sep= "," )
+    part2 <- str_c("and", string[[length(string)]], sep = " ")
+
+        str_c(c(part1, part2), collapse = " ")
+    }
+}
+
+# does not work. 1L 2L etc refer to the specific length of the string components and not how many strings are in the vector
+
+myfun2<-function(string){
+    l<-length(string)
+    if(l==0){
+        print("NA")
+    }
+    else if(l==1){
+      print(string)  
+    }
+    else if (l ==2){
+        str_c(string[[1]], "and", string[[2]], sep = " ")
+    }
+    else {
+        part1<- str_c(string[seq_len(l - 1)], sep= "," )
+    part2 <- str_c("and", string[[l]], sep = " ")
+
+        str_c(c(part1, part2), collapse = " ")
+    }
+}
+
+myfun2(vec)
+
+# missing the commas in between the strings 
+# need to add another deliminator
+
+myfun3<-function(string, delim){
+    l<-length(string)
+    if(l==0){
+        print("NA")
+    }
+    else if(l==1){
+      print(string)  
+    }
+    else if (l ==2){
+        str_c(string[[1]], "and", string[[2]], sep = " ")
+    }
+    else {
+        part1<- str_c(string[seq_len(l - 1)], sep= delim )
+    part2 <- str_c("and", string[[l]], sep = " ")
+
+        str_c(c(part1, part2), collapse = delim)
+    }
+}
+
+myfun3(vec, delim=",")
+# missing the space after the comma before and but that is close enough!
+
+myfun3(vec2, delim=",")
+myfun3(vec3, delim=",")
+myfun3(vec4, delim=",")
+
+```
+
+
+### 14.3.1.1 Exercises: Matching
+
+1. Explain why each of these strings don't match a \: "\", "\\", "\\\".
+
+```{r, error=TRUE}
+    
+#"\"
+
+"\\"
+
+ # "\\\"
+
+```
+
+The first is incomplete. R thinks the backslash is to "escape" another symbol that you need to provide?
+
+The second is a string for the two backslashes and seems to work fine as is
+
+The third is also looking to escape another character after a backslash?
+
+My confusion aroundthe number of backslashes to use will be theme throughout
+
+2. How would you match the sequence "'\?
+
+```{r}
+str_view("\"'\\", "\"'\\\\", match = TRUE)
+
+```
+
+3. What patterns will the regular expression \..\..\.. match? How would you represent it as a string?
+
+```{r}
+string<-c("a..a", "a.a", ".a.", "..a", "a.a.a", ".a.a.a.", "......")
+str_view(string, "\\..\\..\\..", match = TRUE)
+```
+
+Will match starting with .character and repeats three times. The other character could also be a dot. 
+
+
+### 14.3.2.1 Exercises
+
+1. How would you match the literal string "$^$"?
+
+```{r, error=TRUE}
+test<-c("$^$", "blah$^$", "words")
+
+str_view(test, "\$\^\$", match = TRUE) # error
+
+
+str_view(test, "\\$\\^\\$", match = TRUE) # matches if it is anywhere in the string
+
+str_view(test, "^\\$\\^\\$$", match = TRUE) # matches exactly that string
+
+```
+
+2. Given the corpus of common words in stringr::words, create regular expressions that find all words that:
+
+Start with y
+End with x
+Are exactly three letters long. (Don't cheat by using str_length()!)
+Have seven letters or more.
+Since this list is long, you might want to use the match argument to str_view() to show only the matching or non-matching words.
+
+```{r}
+word_list<-stringr::words
+str_view(word_list, "^y", match = TRUE)
+str_view(word_list, "x$", match = TRUE)
+str_view(word_list, "^...$", match=TRUE)
+str_view(word_list, "^.......", match=TRUE)
+```
+
+
+### 14.3.3.1 Exercises
+
+1. Create regular expressions to find all words that:
+
+a. Start with a vowel.
+
+b. only contain consonants. (Hint: thinking about matching “not-vowels.)
+
+c. End with ed, but not with eed.
+
+d. End with ing or ise.
+
+```{r, error=TRUE}
+
+#a 
+st<-c("eggs", "oh", "behave", "jared", "reed", "loving", "jjjj", "memorise")
+str_view(st, "^[aeiou]", match=TRUE) 
+
+#b
+str_view(st, "^[^aeiou]$", match=TRUE) # not working
+str_view(st, "^[^aeiou]+$", match=TRUE) # in solutions but I don't understand how you would lead to the conclusion that a + is needed based on chapter content
+
+#c
+str_view(st, "ed$", match=TRUE) # need to rule out the eed though
+str_view(st, "ed$|[^e]ed$", match=TRUE) # still doesn't work
+
+# d
+str_view(st, "i(ng|se)$", match = TRUE)
+
+```
+
+2. Empirically verify the rule i before e except after c.
+
+```{r}
+str_view(word_list, "cei|[^c]ie", match = TRUE)
+
+```
+
+3. Is q always followed by a u?
+
+```{r}
+str_view(word_list, "q.", match = TRUE) # in the word list it is
+str_view(word_list, "q[^u]", match = TRUE)  # nothing comes up further verifying?
+```
+
+4. Write a regular expression that matches a word if it's probably written in British English, not American English.
+
+This seems like an unreasonable question. You need to know all cases of differences in spelling in order to do this...
+
+5. Create a regular expression that will match telephone numbers as commonly written in your country.
+
+```{r}
+nums<-c("647-295-1347", "(647) 295-1347", "647 295 1347")
+
+# first one
+str_view(nums, "\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d")
+
+# second
+
+str_view(nums, "\\(\\d\\d\\d\\) \\d\\d\\d-\\d\\d\\d\\d")
+
+# third
+str_view(nums, "\\d\\d\\d \\d\\d\\d \\d\\d\\d\\d")
+
+```
+
+
+### 14.3.4.1 Exercises
+
+1. Describe the equivalents of ?, +, * in {m,n} form.
+
+? = {0,1}
++ = {1,}
+* = {0,}
+
+2. Describe in words what these regular expressions match: (read carefully to see if I'm using a regular expression or a string that defines a regular expression.)
+
+^.*$ = starts with a character that repeats 0 or more times at the end
+"\\{.+\\}" = ??
+\d{4}-\d{2}-\d{2} = a digit repeats 4 times followed by a dash, digit repeats twice, dash, digit repeats twice
+"\\\\{4}" = two backslashes repeat four times?
+
+3. Create regular expressions to find all words that:
+
+a. Start with three consonants.
+b. Have three or more vowels in a row.
+c. Have two or more vowel-consonant pairs in a row.
+
+```{r}
+# a
+
+str_view(word_list, "^[^aeiou]{3}", match=TRUE)
+
+# b
+
+str_view(word_list, "[aeiou]{3,}", match=TRUE)
+
+# c
+
+str_view(word_list, "([aeiou][^aeiou]){2,}", match = TRUE)
+
+```
+
+
+### 14.3.5.1 Exercises
+
+1. Describe, in words, what these expressions will match:
+
+a (.)\1\1
+\
+one character repeats once and then again (i.e., three times)
+
+b "(.)(.)\\2\\1"
+
+a character pair repeats but in the verse order (e.g., noon). 
+
+c (..)\1
+
+two characters repeat once? Not sure how this differs from (..)\\1..
+
+d "(.).\\1.\\1"
+
+initially thought character followed by dot repeats twice, but can see from code it is more general.
+
+particular character followed by any other character repeats twice
+
+e.g., eleven will match eleve 
+
+e "(.)(.)(.).*\\3\\2\\1"
+
+matches paragrap in paragraph but not sure how to describe that in words
+
+
+```{r}
+
+#a 
+str_view(fruit, "(.)\1\1", match = TRUE)
+str_view(word_list, "(.)\1\1", match = TRUE)
+
+# b
+
+str_view(word_list, "(.)(.)\\2\\1", match = TRUE)
+
+# c
+
+str_view(word_list, "(..)\1", match = TRUE)
+str_view(fruit, "(..)\1", match = TRUE)
+
+# d
+
+strng<-c("a.a.", ".a.a.a", "aaaa")
+str_view(strng, "(.).\\1.\\1", match = TRUE)
+str_view(word_list, "(.).\\1.\\1", match = TRUE)
+
+# e
+
+str_view(word_list, "(.)(.)(.).*\\3\\2\\1", match = TRUE)
+# matches word paragraph and highlights everything except h
+
+```
+
+2. Construct regular expressions to match words that:
+
+a  start and end with the same character.
+
+b Contain a repeated pair of letters (e.g. “church contains “ch repeated twice.)
+
+c Contain one letter repeated in at least three places (e.g. “eleven contains three “es.)
+
+```{r, error=TRUE}
+
+# a
+
+str_view(word_list, "^(.)(.)$", match = TRUE) # only matches if the two letters side by side (a string with exactly two characters)
+
+str_view(word_list, "^(.)((.\\1?$)", match = TRUE) # doesn't work
+
+# solution:
+str_view(word_list, "^(.)((.*\\1$)|\\1?$)", match = TRUE)
+
+# b
+
+str_view(word_list, "([A-Za-z][A-Za-z]).*\\1", match = TRUE)
+# obtained from solutions: Can specify a range of letters. The upper and lower case is required to have the right match or would have to convert all the characters to lowercase first in order to use "([a-z][a-z]).*\\1
+
+# or could use
+str_view(word_list, "([:letter:][:letter:]).*\\1", match = TRUE)
+
+# more efficient way of code above:
+str_view(word_list, "([[:letter:]]).*\\1", match = TRUE)
+
+# c
+
+str_subset(word_list, "([:letter:]).*\\1.*\\1")
+
+# taken from solutions
+str_subset(str_to_lower(word_list), "([a-z]).*\\1.*\\1")
+# all the words are in lower case already so don't really need the str_to_lower in this example, but would if had names or other capitalization
+
+```
+
+
+### 14.4.1.1 Exercises
+
+1. For each of the following challenges, try solving it by using both a single regular expression, and a combination of multiple str_detect() calls.
+
+a. Find all words that start or end with x.
+
+```{r}
+word_list[str_detect(word_list, "^x|x$")] # no words that start with x in the set
+
+```
+
+b. Find all words that start with a vowel and end with a consonant.
+
+```{r}
+word_list[str_detect(word_list, "^[aeiou].*[^aieou]$")] 
+
+```
+
+c. Are there any words that contain at least one of each different vowel?
+
+```{r}
+word_list[str_detect(word_list, "[a].*[e].*[i].*[o].*[u].*")] # don't think this works. will require this order so you would have to do all possible combinations???
+
+# from solutions
+
+word_list[str_detect(word_list, "a") &
+  str_detect(word_list, "e") &
+  str_detect(word_list, "i") &
+  str_detect(word_list, "o") &
+  str_detect(word_list, "u")]
+
+# no words with all
+
+```
+
+2. What word has the highest number of vowels? What word has the highest proportion of vowels? (Hint: what is the denominator?)
+
+```{r}
+# highest num
+vow<-str_count(word_list, "[aeiou]")
+word_list[which(vow==max(vow))]
+
+# highest proportion
+
+denom<-str_length(word_list)
+prop<-vow/denom
+
+word_list[which(prop==max(prop))]
+
+```
+
+
+### 14.4.2.1 Exercises
+
+1. In the previous example, you might have noticed that the regular expression matched "flickered", which is not a colour. Modify the regex to fix the problem.
+
+```{r}
+colours <- c("red", "orange", "yellow", "green", "blue", "purple")
+colour_match <- str_c(colours, collapse = "|")
+colour_match
+
+# try to add white space to colour match
+colour2<-str_pad(colour_match, width=1, side="both") # doesn't work
+
+# solution:
+colour_match2 <- str_c("\\b(", str_c(colours, collapse = "|"), ")\\b") # the \\b adds a word boundary before and after word
+colour_match2
+
+more2 <- sentences[str_count(sentences, colour_match) > 1]
+str_view_all(more2, colour_match2, match = TRUE)
+
+```
+
+2. From the Harvard sentences data, extract:
+
+The first word from each sentence.
+All words ending in ing.
+All plurals.
+
+```{r}
+# first word is the one with a capital first letter followed by lower case letters
+str_extract(sentences, "[A-Z][a-z]*")
+
+str_extract_all(sentences, ".+[i][n][g]$", simplify = TRUE) # doesn't work
+
+ing <- "\\b[A-Za-z]+ing\\b"
+sentences_with_ing <- str_detect(sentences, ing)
+unique(unlist(str_extract_all(sentences[sentences_with_ing], ing))) 
+
+# plurals
+
+# saying need at least 3 characters first to avoid words like is, as etc.
+unique(unlist(str_extract_all(sentences, "\\b[A-Za-z]{3,}s\\b")))
+
+```
+
+### 14.4.3.1 Exercises
+
+1. Find all words that come after a "number" like "one", "two", "three" etc. Pull out both the number and the word.
+
+```{r}
+num_word <- "(one|two|three|four|five|six|seven|eight|nine|ten)+(\\s)+[A-Za-z]+"
+
+subset<-sentences[str_detect(sentences, num_word)]
+
+  str_extract(subset, num_word)
+
+```
+
+2. Find all contractions. Separate out the pieces before and after the apostrophe.
+
+```{r}
+cont <- "([a-z]+)'([a-z]+)" # if use this one, missing letters that are capitalized so need:
+  cont <- "([A-Za-z]+)'([A-Za-z]+)"
+
+subset<-sentences[str_detect(sentences, cont)]
+
+  str_extract(subset, cont) # missing ones that start with capital letter so would need to convert all to lower case first or use
+  
+```
+
+
+### 14.4.4.1 Exercises
+
+1. Replace all forward slashes in a string with backslashes.
+
+```{r, error=TRUE}
+exstring<-c("word/", "06/10")
+
+str_replace_all(exstring, "/","\\") # doesn't work
+
+# solution includes four backslashes...
+
+```
+
+2. Implement a simple version of str_to_lower() using replace_all().
+
+```{r}
+
+str_replace_all(word_list, "[A-Z]", "[a-z]")
+
+```
+
+3. Switch the first and last letters in words. Which of those strings are still words?
+
+```{r}
+# from solutions
+
+swapped <- str_replace_all(word_list, "^([A-Za-z])(.*)([a-z])$", "\\3\\2\\1")
+intersect(swapped, word_list)
+
+```
+
+
+### 14.4.5.1 Exercises
+
+1. Split up a string like "apples, pears, and bananas" into individual components.
+
+```{r, error=TRUE}
+fruit<-c("apples, pears, and bananas")
+
+  new<-str_split(fruit, ",\\s") # need to fix and bananas
+ 
+str_replace(new, "[a][n][d],", "\s")
+
+# solution: 
+str_split(x, ", +(and +)?")[[1]]
+
+
+```
+
+2. Why is it better to split up by boundary("word") than " "?
+
+boundary can also recognize non-space characters that separate words so you are more likely to get an accurate result using it vs. " " alone
+
+3. What does splitting with an empty string ("") do? Experiment, and then read the documentation.
+
+```{r}
+str_split(head(word_list), "")
+```
+
+It splits each word into separate strings per character. 
+
+### 14.5.1 Exercises
+
+1. How would you find all strings containing \ with regex() vs. with fixed()?
+
+```{r}
+# intially tried with just two slashes and one but didn't work...when in doubt double those \ up I guess...
+
+str_subset(c("word1\\word2", "words"), "\\\\")
+
+str_subset(c("word1\\word2", "words"), fixed("\\"))
+
+```
+
+2. What are the five most common words in sentences?
+
+```{r, error=TRUE}
+
+# remove capitalization first
+new_sentences<-str_to_lower(sentences)
+
+all_words<-unlist(str_extract_all(new_sentences, boundary("word")))
+
+  count(all_words, sort = TRUE) # not working
+  
+  # solution:
+
+tibble(words = unlist(str_extract_all(sentences, boundary("word")))) %>%
+  mutate(words = str_to_lower(words)) %>%
+  count(words, sort = TRUE) 
+
+# looks like you need the variable name in a tibble to work with instead of a sole vector?
+
+```
+
+### 14.7.1 Exercises
+
+1. Find the stringi functions that:
+
+Count the number of words:
+stri_count_words()
+
+Find duplicated strings:
+stri_duplicated()
+
+Generate random text:
+stri_rand_strings()
+
+
+2. How do you control the language that stri_sort() uses for sorting?
+
+using the locale() argument
